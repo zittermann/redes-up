@@ -75,32 +75,34 @@ int main(int argc, char *argv[]) {
     
     printf("listening port 8080...\n");
     
-    /* In the call to accept(), the server is put to sleep and when for an incoming
-     * client request, the three way TCP handshake* is complete, the function accept()
-     * wakes up and returns the socket descriptor representing the client socket.
-     */
-    socklen_t size = sizeof(client_addr);
-    
-    
-    clientSocket =  accept(listenfd, (struct sockaddr*) &client_addr, &size);
+    while(1) {
+        /* In the call to accept(), the server is put to sleep and when for an incoming
+        * client request, the three way TCP handshake* is complete, the function accept()
+        * wakes up and returns the socket descriptor representing the client socket.
+        */
+        socklen_t size = sizeof(client_addr);
+        
+        clientSocket =  accept(listenfd, (struct sockaddr*) &client_addr, &size);
 
-    if(clientSocket < 0) {
-        perror("Accept failed");
-        close(listenfd);
-        exit(1);
+        if(clientSocket < 0) {
+            perror("Accept failed");
+            close(listenfd);
+            exit(1);
+        }
+        
+        // send & recv cliente (clientSocket)
+        pthread_t clienteThread;
+        pthread_attr_t threadAttrs;
+
+        pthread_attr_init(&threadAttrs);
+        pthread_attr_setdetachstate(&threadAttrs, PTHREAD_CREATE_DETACHED);
+        pthread_attr_setschedpolicy(&threadAttrs, SCHED_FIFO);  
+
+        //pthread_create(&clienteThread, &threadAttrs, atenderCliente, &clientSocket);
+
+        handle_client(&clientSocket);
     }
-    
-    // send & recv cliente (clientSocket)
-    pthread_t clienteThread;
-    pthread_attr_t threadAttrs;
 
-    pthread_attr_init(&threadAttrs);
-    pthread_attr_setdetachstate(&threadAttrs, PTHREAD_CREATE_DETACHED);
-    pthread_attr_setschedpolicy(&threadAttrs, SCHED_FIFO);  
-
-    //pthread_create(&clienteThread, &threadAttrs, atenderCliente, &clientSocket);
-
-    handle_client(&clientSocket);
 }
 
 void *handle_client(void *params) {
