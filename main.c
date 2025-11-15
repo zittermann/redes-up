@@ -98,9 +98,8 @@ int main(int argc, char *argv[]) {
         pthread_attr_setdetachstate(&threadAttrs, PTHREAD_CREATE_DETACHED);
         pthread_attr_setschedpolicy(&threadAttrs, SCHED_FIFO);  
 
-        //pthread_create(&clienteThread, &threadAttrs, atenderCliente, &clientSocket);
+        pthread_create(&clienteThread, &threadAttrs, handle_client, &clientSocket);
 
-        handle_client(&clientSocket);
     }
 
 }
@@ -133,7 +132,6 @@ void *handle_client(void *params) {
 	// Get Path
 	char* req_path = strtok(buffer, " ");
 	req_path = strtok(NULL, " ");
-
 
 	if (strcmp(req_path, "/ping") == 0) {
 		char *body = "Pong"; 
