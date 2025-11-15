@@ -180,8 +180,18 @@ void handle_client_request(int clientSocket) {
     
     buffer[bytes_received] = '\0'; // Null terminate the received data
 
-	// Get Path
-	char* req_path = strtok(buffer, " ");
+	// Find the body before strtok modifies the buffer
+	char *body_start = strstr(buffer, "\r\n\r\n");
+	if (body_start != NULL) {
+		body_start += 4; // Skip \r\n\r\n
+	}
+
+	// Get Path (strtok modifies buffer, so we need to use a copy)
+	char buffer_copy[BUFFER_SIZE];
+	strncpy(buffer_copy, buffer, BUFFER_SIZE - 1);
+	buffer_copy[BUFFER_SIZE - 1] = '\0';
+	
+	char* req_path = strtok(buffer_copy, " ");
 	if (req_path == NULL) {
         printf("Error parsing request on socket %d\n", clientSocket);
         return;
@@ -193,8 +203,26 @@ void handle_client_request(int clientSocket) {
     }
 
 	if (strcmp(req_path, "/ping") == 0) {
+		// Validates body is not empty
+		if (body_start == NULL) {
+			// No body found
+			char *bad_request = "HTTP/1.1 400 Bad Request\r\nContent-Length: 11\r\nConnection: Close\r\n\r\nBad Request";
+			printf("No body found in request on socket %d\n", clientSocket);
+			send(clientSocket, bad_request, strlen(bad_request), 0);
+			return;
+		}
+		
+		// Check if body contains "Ping"
+		if (strstr(body_start, "Ping") == NULL) {
+			// "Ping" not found in body
+			char *bad_request = "HTTP/1.1 400 Bad Request\r\nContent-Length: 11\r\nConnection: Close\r\n\r\nBad Request";
+			printf("Request body does not contain 'Ping' on socket %d\n", clientSocket);
+			send(clientSocket, bad_request, strlen(bad_request), 0);
+			return;
+		}
+		
 		char *body = "Pong"; 
-		printf("Sending response for /ping on socket %d\n", clientSocket);
+		printf("Valid request with 'Ping' found, sending 'Pong' on socket %d\n", clientSocket);
 		sprintf(response, responseHeaders, strlen(body), body);
 		send(clientSocket, response, strlen(response), 0);
 	} else if (strcmp(req_path, "/hit-and-run.jpg") == 0) {

@@ -43,14 +43,18 @@ int main(int argc, char *argv[]) {
     
     printf("Connected to server at localhost:8080\n");
     
-    // Build HTTP GET request to /ping endpoint
-    // The request contains the string "ping" in the path
+    // Build HTTP POST request to /ping endpoint with "Ping" in the body
+    const char *body = "Ping";
     snprintf(sendBuff, sizeof(sendBuff), 
-             "GET /ping HTTP/1.1\r\n"
+             "POST /ping HTTP/1.1\r\n"
              "Host: localhost:8080\r\n"
              "User-Agent: C-Client/1.0\r\n"
+             "Content-Type: text/plain\r\n"
+             "Content-Length: %zu\r\n"
              "Connection: close\r\n"
-             "\r\n");
+             "\r\n"
+             "%s",
+             strlen(body), body);
     
     printf("Sending request:\n%s", sendBuff);
     
