@@ -197,6 +197,48 @@ void handle_client_request(int clientSocket) {
 		printf("Sending response for /ping on socket %d\n", clientSocket);
 		sprintf(response, responseHeaders, strlen(body), body);
 		send(clientSocket, response, strlen(response), 0);
+	} else if (strcmp(req_path, "/hit-and-run.jpg") == 0) {
+
+        printf("Sending hit-and-run.jpg on socket %d\n", clientSocket);
+        
+        int file_fd = open("hit-and-run.jpg", O_RDONLY);
+        if (file_fd < 0) {
+            // File not found
+            char *not_found = "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\nConnection: Close\r\n\r\nNot Found";
+            send(clientSocket, not_found, strlen(not_found), 0);
+            return;
+        }
+        
+        // Get file size
+        struct stat file_stat;
+        if (fstat(file_fd, &file_stat) < 0) {
+            close(file_fd);
+            char *error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 21\r\nConnection: Close\r\n\r\nInternal Server Error";
+            send(clientSocket, error, strlen(error), 0);
+            return;
+        }
+        
+        // Send HTTP headers
+        char headers[512];
+        snprintf(headers, sizeof(headers),
+                 "HTTP/1.1 200 OK\r\n"
+                 "Content-Type: image/jpeg\r\n"
+                 "Content-Length: %ld\r\n"
+                 "Connection: Close\r\n"
+                 "\r\n",
+                 file_stat.st_size);
+        
+        send(clientSocket, headers, strlen(headers), 0);
+        
+        // Send file content using sendfile
+        off_t offset = 0;
+        ssize_t sent = sendfile(clientSocket, file_fd, &offset, file_stat.st_size);
+        
+        if (sent < 0) {
+            perror("sendfile failed");
+        }
+        
+        close(file_fd);
 	} else {
         // HTTP 404 Not Found
         char *not_found = "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\nConnection: Close\r\n\r\nNot Found";
